@@ -288,7 +288,7 @@ function get_metadata($meta_type, $object_id, $meta_key = '', $single = false) {
 
 	if ( !$meta_key )
 		return $meta_cache;
-	
+
 	if ( isset($meta_cache[$meta_key]) ) {
 		if ( $single )
 			return maybe_unserialize( $meta_cache[$meta_key][0] );
@@ -557,9 +557,6 @@ function update_meta_cache($meta_type, $object_ids) {
 	$id_list = join(',', $ids);
 	$meta_list = $wpdb->get_results( $wpdb->prepare("SELECT $column, meta_key, meta_value FROM $table WHERE $column IN ($id_list)",
 		$meta_type), ARRAY_A );
-
-
-	//wp_die( $wpdb->prepare("SELECT $column, meta_key, meta_value FROM $table WHERE $column IN ($id_list)", $meta_type) );
 
 	if ( !empty($meta_list) ) {
 		foreach ( $meta_list as $metarow) {

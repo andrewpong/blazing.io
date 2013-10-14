@@ -673,7 +673,6 @@ class WP_Tax_Query {
 		$count = count( $this->queries );
 
 		foreach ( $this->queries as $index => $query ) {
-
 			$this->clean_query( $query );
 
 			if ( is_wp_error( $query ) )
@@ -739,8 +738,6 @@ class WP_Tax_Query {
 		else
 			$where = '';
 
-		//if( $primary_id_column == 'ID' && $primary_table == $wpdb->posts )	
-
 		return compact( 'join', 'where' );
 	}
 
@@ -803,11 +800,10 @@ class WP_Tax_Query {
 				$terms = $wpdb->get_col( "
 					SELECT $wpdb->term_taxonomy.$resulting_field
 					FROM $wpdb->term_taxonomy
-					INNER JOIN $wpdb->terms ON $wpdb->terms.term_id = $wpdb->term_taxonomy.term_id
+					INNER JOIN $wpdb->terms USING (term_id)
 					WHERE taxonomy = '{$query['taxonomy']}'
 					AND $wpdb->terms.{$query['field']} IN ($terms)
 				" );
-				
 				break;
 			case 'term_taxonomy_id':
 				$terms = implode( ',', array_map( 'intval', $query['terms'] ) );
@@ -900,7 +896,7 @@ function get_term($term, $taxonomy, $output = OBJECT, $filter = 'raw') {
 		if ( !$term = (int) $term )
 			return $null;
 		if ( ! $_term = wp_cache_get($term, $taxonomy) ) {
-			$_term = $wpdb->get_row( $wpdb->prepare( "SELECT TOP 1 t.*, tt.* FROM $wpdb->terms AS t INNER JOIN $wpdb->term_taxonomy AS tt ON t.term_id = tt.term_id WHERE tt.taxonomy = %s AND t.term_id = %d", $taxonomy, $term) );
+			$_term = $wpdb->get_row( $wpdb->prepare( "SELECT t.*, tt.* FROM $wpdb->terms AS t INNER JOIN $wpdb->term_taxonomy AS tt ON t.term_id = tt.term_id WHERE tt.taxonomy = %s AND t.term_id = %d LIMIT 1", $taxonomy, $term) );
 			if ( ! $_term )
 				return $null;
 			wp_cache_add($term, $_term, $taxonomy);
@@ -973,7 +969,7 @@ function get_term_by($field, $value, $taxonomy, $output = OBJECT, $filter = 'raw
 		return $term;
 	}
 
-	$term = $wpdb->get_row( $wpdb->prepare( "SELECT TOP 1 t.*, tt.* FROM $wpdb->terms AS t INNER JOIN $wpdb->term_taxonomy AS tt ON t.term_id = tt.term_id WHERE tt.taxonomy = %s AND $field = %s", $taxonomy, $value) );
+	$term = $wpdb->get_row( $wpdb->prepare( "SELECT t.*, tt.* FROM $wpdb->terms AS t INNER JOIN $wpdb->term_taxonomy AS tt ON t.term_id = tt.term_id WHERE tt.taxonomy = %s AND $field = %s LIMIT 1", $taxonomy, $value) );
 	if ( !$term )
 		return false;
 
@@ -1358,9 +1354,9 @@ function get_terms($taxonomies, $args = '') {
 	// don't limit the query results when we have to descend the family tree
 	if ( $number && ! $hierarchical && ! $child_of && '' === $parent ) {
 		if ( $offset )
-			$limits = 'OFFSET ' . $offset . ' ROWS FETCH NEXT ' . $number . ' ROWS ONLY';
+			$limits = 'LIMIT ' . $offset . ',' . $number;
 		else
-			$limits = 'OFFSET 0 ROWS FETCH NEXT ' . $number . ' ROWS ONLY';
+			$limits = 'LIMIT ' . $number;
 	} else {
 		$limits = '';
 	}
@@ -1800,7 +1796,7 @@ function wp_delete_term( $term, $taxonomy, $args = array() ) {
 			return $term_obj;
 		$parent = $term_obj->parent;
 
-		$edit_tt_ids = $wpdb->get_col( "SELECT [term_taxonomy_id] FROM $wpdb->term_taxonomy WHERE [parent] = " . (int)$term_obj->term_id );
+		$edit_tt_ids = $wpdb->get_col( "SELECT `term_taxonomy_id` FROM $wpdb->term_taxonomy WHERE `parent` = " . (int)$term_obj->term_id );
 		do_action( 'edit_term_taxonomies', $edit_tt_ids );
 		$wpdb->update( $wpdb->term_taxonomy, compact( 'parent' ), array( 'parent' => $term_obj->term_id) + compact( 'taxonomy' ) );
 		do_action( 'edited_term_taxonomies', $edit_tt_ids );

@@ -179,8 +179,7 @@ function count_many_users_posts( $users, $post_type = 'post', $public_only = fal
 	$userlist = implode( ',', array_map( 'absint', $users ) );
 	$where = get_posts_by_author_sql( $post_type, true, null, $public_only );
 
-	$result = $wpdb->get_results( "SELECT post_author, COUNT(*) as [found_rows] FROM $wpdb->posts $where AND post_author IN ($userlist) GROUP BY post_author", ARRAY_N );
-
+	$result = $wpdb->get_results( "SELECT post_author, COUNT(*) FROM $wpdb->posts $where AND post_author IN ($userlist) GROUP BY post_author", ARRAY_N );
 	foreach ( $result as $row ) {
 		$count[ $row[0] ] = $row[1];
 	}
@@ -404,8 +403,8 @@ class WP_User_Query {
 			$this->query_fields = "$wpdb->users.ID";
 		}
 
-		//if ( $qv['count_total'] )
-			//$this->query_fields = 'SQL_CALC_FOUND_ROWS ' . $this->query_fields;
+		if ( $qv['count_total'] )
+			$this->query_fields = 'SQL_CALC_FOUND_ROWS ' . $this->query_fields;
 
 		$this->query_from = "FROM $wpdb->users";
 		$this->query_where = "WHERE 1=1";
@@ -444,9 +443,9 @@ class WP_User_Query {
 		// limit
 		if ( $qv['number'] ) {
 			if ( $qv['offset'] )
-				$this->query_limit = $wpdb->prepare("OFFSET %d ROWS FETCH NEXT %d ROWS ONLY", $qv['offset'], $qv['number']);
+				$this->query_limit = $wpdb->prepare("LIMIT %d, %d", $qv['offset'], $qv['number']);
 			else
-				$this->query_limit = $wpdb->prepare("OFFSET 0 ROWS FETCH NEXT %d ROWS ONLY", $qv['number']);
+				$this->query_limit = $wpdb->prepare("LIMIT %d", $qv['number']);
 		}
 
 		$search = trim( $qv['search'] );
@@ -540,8 +539,6 @@ class WP_User_Query {
 
 		$qv =& $this->query_vars;
 
-		$wpdb->query( "SELECT COUNT(*) as [found_rows] $this->query_from $this->query_where" );
-
 		if ( is_array( $qv['fields'] ) || 'all' == $qv['fields'] ) {
 			$this->results = $wpdb->get_results("SELECT $this->query_fields $this->query_from $this->query_where $this->query_orderby $this->query_limit");
 		} else {
@@ -549,7 +546,7 @@ class WP_User_Query {
 		}
 
 		if ( $qv['count_total'] )
-			$this->total_users = $wpdb->last_query_total_rows;
+			$this->total_users = $wpdb->get_var( apply_filters( 'found_users_query', 'SELECT FOUND_ROWS()' ) );
 
 		if ( !$this->results )
 			return;
@@ -892,17 +889,12 @@ function count_users($strategy = 'time') {
 		// Build a CPU-intensive query that will return concise information.
 		$select_count = array();
 		foreach ( $avail_roles as $this_role => $name ) {
-			$select_count[] = "(SELECT COUNT(*) FROM $wpdb->usermeta WHERE [meta_key] = '{$blog_prefix}capabilities' AND [meta_value] LIKE '%" . like_escape( $this_role ) . "%') as $this_role";
+			$select_count[] = "COUNT(NULLIF(`meta_value` LIKE '%\"" . like_escape( $this_role ) . "\"%', false))";
 		}
 		$select_count = implode(', ', $select_count);
 
 		// Add the meta_value index to the selection list, then run the query.
 		$row = $wpdb->get_row( "SELECT $select_count, COUNT(*) FROM $wpdb->usermeta WHERE meta_key = '{$blog_prefix}capabilities'", ARRAY_N );
-		$query = "SELECT $select_count, COUNT(*) AS [all] FROM $wpdb->usermeta WHERE meta_key = '{$blog_prefix}capabilities'";
-		$result = sqlsrv_query( $wpdb->dbh, $query );
-		$result = sqlsrv_fetch_array($result);
-
-		$row = $result;
 
 		// Run the previous loop again to associate results with role names.
 		$col = 0;
@@ -916,7 +908,6 @@ function count_users($strategy = 'time') {
 
 		// Get the meta_value index from the end of the result set.
 		$total_users = (int) $row[$col];
-
 
 		$result['total_users'] = $total_users;
 		$result['avail_roles'] =& $role_counts;
@@ -1385,13 +1376,13 @@ function wp_insert_user( $userdata ) {
 	if ( empty($show_admin_bar_front) )
 		$show_admin_bar_front = 'true';
 
-	$user_nicename_check = $wpdb->get_var( $wpdb->prepare("SELECT TOP 1 ID FROM $wpdb->users WHERE user_nicename = %s AND user_login != %s" , $user_nicename, $user_login));
+	$user_nicename_check = $wpdb->get_var( $wpdb->prepare("SELECT ID FROM $wpdb->users WHERE user_nicename = %s AND user_login != %s LIMIT 1" , $user_nicename, $user_login));
 
 	if ( $user_nicename_check ) {
 		$suffix = 2;
 		while ($user_nicename_check) {
 			$alt_user_nicename = $user_nicename . "-$suffix";
-			$user_nicename_check = $wpdb->get_var( $wpdb->prepare("SELECT TOP 1 ID FROM $wpdb->users WHERE user_nicename = %s AND user_login != %s" , $alt_user_nicename, $user_login));
+			$user_nicename_check = $wpdb->get_var( $wpdb->prepare("SELECT ID FROM $wpdb->users WHERE user_nicename = %s AND user_login != %s LIMIT 1" , $alt_user_nicename, $user_login));
 			$suffix++;
 		}
 		$user_nicename = $alt_user_nicename;
@@ -1404,7 +1395,7 @@ function wp_insert_user( $userdata ) {
 		$wpdb->update( $wpdb->users, $data, compact( 'ID' ) );
 		$user_id = (int) $ID;
 	} else {
-		$insert = $wpdb->insert( $wpdb->users, $data + compact( 'user_login' ) );
+		$wpdb->insert( $wpdb->users, $data + compact( 'user_login' ) );
 		$user_id = (int) $wpdb->insert_id;
 	}
 

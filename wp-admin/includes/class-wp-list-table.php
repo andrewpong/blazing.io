@@ -364,7 +364,7 @@ class WP_List_Table {
 			SELECT DISTINCT YEAR( post_date ) AS year, MONTH( post_date ) AS month
 			FROM $wpdb->posts
 			WHERE post_type = %s
-			ORDER BY year DESC
+			ORDER BY post_date DESC
 		", $post_type ) );
 
 		$month_count = count( $months );

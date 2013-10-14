@@ -862,7 +862,7 @@ function wp_audio_shortcode( $attr ) {
 		'autoplay' => '',
 		'preload'  => 'none'
 	);
-	foreach( $default_types as $type )
+	foreach ( $default_types as $type )
 		$defaults_atts[$type] = '';
 
 	$atts = shortcode_atts( $defaults_atts, $attr, 'audio' );
@@ -912,7 +912,7 @@ function wp_audio_shortcode( $attr ) {
 		'preload'  => $preload,
 		'style'    => 'width: 100%',
 	);
-	
+
 	// These ones should just be omitted altogether if they are blank
 	foreach ( array( 'loop', 'autoplay', 'preload' ) as $a ) {
 		if ( empty( $atts[$a] ) )
@@ -989,7 +989,7 @@ function wp_video_shortcode( $attr ) {
 		'width'    => empty( $content_width ) ? 640 : $content_width,
 	);
 
-	foreach( $default_types as $type )
+	foreach ( $default_types as $type )
 		$defaults_atts[$type] = '';
 
 	$atts = shortcode_atts( $defaults_atts, $attr, 'video' );
@@ -1434,7 +1434,6 @@ function wp_embed_handler_video( $matches, $attr, $url, $rawattr ) {
 		$dimensions .= sprintf( 'width="%d" ', (int) $rawattr['width'] );
 		$dimensions .= sprintf( 'height="%d" ', (int) $rawattr['height'] );
 	}
-
 	$video = sprintf( '[video %s src="%s" /]', $dimensions, esc_url( $url ) );
 	return apply_filters( 'wp_embed_handler_video', $video, $attr, $url, $rawattr );
 }
@@ -1926,7 +1925,6 @@ function get_attached_media( $type, $post = 0 ) {
 function get_media_embedded_in_content( $content, $types = null ) {
 	$html = array();
 	$allowed_media_types = array( 'audio', 'video', 'object', 'embed', 'iframe' );
-
 	if ( ! empty( $types ) ) {
 		if ( ! is_array( $types ) )
 			$types = array( $types );
@@ -1950,17 +1948,16 @@ function get_media_embedded_in_content( $content, $types = null ) {
  * @param mixed $post Optional. Post ID or object.
  * @param boolean $html Whether to return HTML or data in the array
  * @return array A list of arrays, each containing gallery data and srcs parsed
- *             from the expanded shortcode
+ *		from the expanded shortcode
  */
 function get_post_galleries( $post, $html = true ) {
 	if ( ! $post = get_post( $post ) )
 		return array();
-	
+
 	if ( ! has_shortcode( $post->post_content, 'gallery' ) )
 		return array();
 
 	$galleries = array();
-
 	if ( preg_match_all( '/' . get_shortcode_regex() . '/s', $post->post_content, $matches, PREG_SET_ORDER ) ) {
 		foreach ( $matches as $shortcode ) {
 			if ( 'gallery' === $shortcode[2] ) {
@@ -1976,7 +1973,7 @@ function get_post_galleries( $post, $html = true ) {
 						foreach ( $src as $s )
 							$srcs[] = $s[2];
 					}
-				
+
 					$data = shortcode_parse_atts( $shortcode[3] );
 					$data['src'] = array_values( array_unique( $srcs ) );
 					$galleries[] = $data;
@@ -1984,7 +1981,7 @@ function get_post_galleries( $post, $html = true ) {
 			}
 		}
 	}
-	
+
 	return apply_filters( 'get_post_galleries', $galleries, $post );
 }
 
@@ -2023,45 +2020,10 @@ function get_post_galleries_images( $post = 0 ) {
  *
  * @since 3.6.0
  *
+ * @param mixed $post Optional. Post ID or object.
  * @return array A list of a gallery's image srcs in order
  */
 function get_post_gallery_images( $post = 0 ) {
 	$gallery = get_post_gallery( $post, false );
 	return empty( $gallery['src'] ) ? array() : $gallery['src'];
-}
-
-/**
- * Retrieve the attachment post id from HTML containing an image.
- *
- * @since 3.6.0
- *
- * @param string $html The html, possibly with an image
- * @param string $matched_html Passed by reference, will be set to to the matched img string
- * @return int The attachment id if found, or 0.
- */
-function img_html_to_post_id( $html, &$matched_html = null ) {
-	$attachment_id = 0;
-
-	// Look for an <img /> tag
-	if ( ! preg_match( '#' . get_tag_regex( 'img' ) .  '#i', $html, $matches ) || empty( $matches ) )
-		return $attachment_id;
-
-	$matched_html = $matches[0];
-
-	// Look for attributes.
-	if ( ! preg_match_all( '#(src|class)=([\'"])(.+?)\2#is', $matched_html, $matches ) || empty( $matches ) )
-		return $attachment_id;
-
-	$attr = array();
-	foreach ( $matches[1] as $key => $attribute_name )
-		$attr[ $attribute_name ] = $matches[3][ $key ];
-
-	if ( ! empty( $attr['class'] ) && false !== strpos( $attr['class'], 'wp-image-' ) )
-		if ( preg_match( '#wp-image-([0-9]+)#i', $attr['class'], $matches ) )
-			$attachment_id = absint( $matches[1] );
-
-	if ( ! $attachment_id && ! empty( $attr['src'] ) )
-		$attachment_id = attachment_url_to_postid( $attr['src'] );
-
-	return $attachment_id;
 }

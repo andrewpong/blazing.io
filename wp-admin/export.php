@@ -109,7 +109,7 @@ function export_date_options( $post_type = 'post' ) {
 		SELECT DISTINCT YEAR( post_date ) AS year, MONTH( post_date ) AS month
 		FROM $wpdb->posts
 		WHERE post_type = %s AND post_status != 'auto-draft'
-		ORDER BY YEAR( post_date ) DESC, MONTH( post_date ) DESC
+		ORDER BY post_date DESC
 	", $post_type ) );
 
 	$month_count = count( $months );

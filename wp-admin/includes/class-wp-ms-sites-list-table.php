@@ -94,8 +94,7 @@ class WP_MS_Sites_List_Table extends WP_List_Table {
 		} elseif ( $order_by == 'blog_id' ) {
 			$query .= ' ORDER BY blog_id ';
 		} else {
-			$order_by = 'blog_id';
-			$query .= ' ORDER BY blog_id ';
+			$order_by = null;
 		}
 
 		if ( isset( $order_by ) ) {
@@ -107,7 +106,7 @@ class WP_MS_Sites_List_Table extends WP_List_Table {
 		if ( ! wp_is_large_network() )
 			$total = $wpdb->get_var( str_replace( 'SELECT *', 'SELECT COUNT( blog_id )', $query ) );
 
-		$query .= " OFFSET " . intval( ( $pagenum - 1 ) * $per_page ) . " ROWS FETCH NEXT " . intval( $per_page ) . " ROWS ONLY";
+		$query .= " LIMIT " . intval( ( $pagenum - 1 ) * $per_page ) . ", " . intval( $per_page );
 		$this->items = $wpdb->get_results( $query, ARRAY_A );
 
 		if ( wp_is_large_network() )
@@ -285,13 +284,13 @@ class WP_MS_Sites_List_Table extends WP_List_Table {
 								$date = 'Y/m/d';
 							else
 								$date = 'Y/m/d \<\b\r \/\> g:i:s a';
-							echo ( $blog['last_updated'] == '0001-01-01 00:00:00' ) ? __( 'Never' ) : mysql2date( $date, $blog['last_updated'] ); ?>
+							echo ( $blog['last_updated'] == '0000-00-00 00:00:00' ) ? __( 'Never' ) : mysql2date( $date, $blog['last_updated'] ); ?>
 						</td>
 					<?php
 					break;
 				case 'registered':
 						echo "<td valign='top' class='$column_name column-$column_name'$style>";
-						if ( $blog['registered'] == '0001-01-01 00:00:00' )
+						if ( $blog['registered'] == '0000-00-00 00:00:00' )
 							echo '&#x2014;';
 						else
 							echo mysql2date( $date, $blog['registered'] );

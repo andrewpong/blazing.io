@@ -181,13 +181,13 @@ function wpmu_current_site() {
 	if ( $domain == $cookie_domain )
 		$current_site = $wpdb->get_row( $wpdb->prepare( "SELECT * FROM $wpdb->site WHERE domain = %s AND path = %s", $domain, $path ) );
 	else
-		$current_site = $wpdb->get_row( $wpdb->prepare( "SELECT TOP 1 * FROM $wpdb->site WHERE domain IN ( %s, %s ) AND path = %s ORDER BY LENGTH( domain ) DESC", $domain, $cookie_domain, $path ) );
+		$current_site = $wpdb->get_row( $wpdb->prepare( "SELECT * FROM $wpdb->site WHERE domain IN ( %s, %s ) AND path = %s ORDER BY CHAR_LENGTH( domain ) DESC LIMIT 1", $domain, $cookie_domain, $path ) );
 
 	if ( ! $current_site ) {
 		if ( $domain == $cookie_domain )
 			$current_site = $wpdb->get_row( $wpdb->prepare("SELECT * FROM $wpdb->site WHERE domain = %s AND path='/'", $domain ) );
 		else
-			$current_site = $wpdb->get_row( $wpdb->prepare("SELECT TOP 1 * FROM $wpdb->site WHERE domain IN ( %s, %s ) AND path = '/' ORDER BY LENGTH( domain ) DESC", $domain, $cookie_domain, $path ) );
+			$current_site = $wpdb->get_row( $wpdb->prepare("SELECT * FROM $wpdb->site WHERE domain IN ( %s, %s ) AND path = '/' ORDER BY CHAR_LENGTH( domain ) DESC LIMIT 1", $domain, $cookie_domain, $path ) );
 	}
 
 	if ( $current_site ) {
@@ -240,7 +240,7 @@ function ms_not_installed() {
 		die( $msg );
 	$msg .= '<p>' . __( 'If your site does not display, please contact the owner of this network.' ) . '';
 	$msg .= ' ' . __( 'If you are the owner of this network please check that MySQL is running properly and all tables are error free.' ) . '</p>';
-	if ( false && !$wpdb->get_var( "SELECT name FROM sysobjects WHERE type='u' AND name = '$wpdb->site'" ) )
+	if ( ! $wpdb->get_var( "SHOW TABLES LIKE '$wpdb->site'" ) )
 		$msg .= '<p>' . sprintf( __( '<strong>Database tables are missing.</strong> This means that MySQL is not running, WordPress was not installed properly, or someone deleted <code>%s</code>. You really should look at your database now.' ), $wpdb->site ) . '</p>';
 	else
 		$msg .= '<p>' . sprintf( __( '<strong>Could not find site <code>%1$s</code>.</strong> Searched for table <code>%2$s</code> in database <code>%3$s</code>. Is that right?' ), rtrim( $domain . $path, '/' ), $wpdb->blogs, DB_NAME ) . '</p>';

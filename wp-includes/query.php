@@ -2052,7 +2052,7 @@ class WP_Query {
 			if ( strlen($q['m']) > 5 )
 				$where .= " AND MONTH($wpdb->posts.post_date)=" . substr($q['m'], 4, 2);
 			if ( strlen($q['m']) > 7 )
-				$where .= " AND DAY($wpdb->posts.post_date)=" . substr($q['m'], 6, 2);
+				$where .= " AND DAYOFMONTH($wpdb->posts.post_date)=" . substr($q['m'], 6, 2);
 			if ( strlen($q['m']) > 9 )
 				$where .= " AND HOUR($wpdb->posts.post_date)=" . substr($q['m'], 8, 2);
 			if ( strlen($q['m']) > 11 )
@@ -2077,7 +2077,7 @@ class WP_Query {
 			$where .= " AND MONTH($wpdb->posts.post_date)='" . $q['monthnum'] . "'";
 
 		if ( $q['day'] )
-			$where .= " AND DAY($wpdb->posts.post_date)='" . $q['day'] . "'";
+			$where .= " AND DAYOFMONTH($wpdb->posts.post_date)='" . $q['day'] . "'";
 
 		// If we've got a post_type AND it's not "any" post_type.
 		if ( !empty($q['post_type']) && 'any' != $q['post_type'] ) {
@@ -2148,7 +2148,7 @@ class WP_Query {
 		}
 
 		if ( $q['w'] )
-			$where .= ' AND ' . _wp_mysql_week( "[$wpdb->posts].[post_date]" ) . " = '" . $q['w'] . "'";
+			$where .= ' AND ' . _wp_mysql_week( "`$wpdb->posts`.`post_date`" ) . " = '" . $q['w'] . "'";
 
 		if ( intval($q['comments_popup']) )
 			$q['p'] = absint($q['comments_popup']);
@@ -2218,7 +2218,9 @@ class WP_Query {
 		// Taxonomies
 		if ( !$this->is_singular ) {
 			$this->parse_tax_query( $q );
+
 			$clauses = $this->tax_query->get_sql( $wpdb->posts, 'ID' );
+
 			$join .= $clauses['join'];
 			$where .= $clauses['where'];
 		}
@@ -2265,7 +2267,7 @@ class WP_Query {
 				$cat_query = wp_list_filter( $tax_query_in_and, array( 'taxonomy' => 'category' ) );
 				if ( ! empty( $cat_query ) ) {
 					$cat_query = reset( $cat_query );
-					
+
 					if ( ! empty( $cat_query['terms'][0] ) ) {
 						$the_cat = get_term_by( $cat_query['field'], $cat_query['terms'][0], 'category' );
 						if ( $the_cat ) {
@@ -2284,7 +2286,7 @@ class WP_Query {
 					if ( ! empty( $tag_query['terms'][0] ) ) {
 						$the_tag = get_term_by( $tag_query['field'], $tag_query['terms'][0], 'post_tag' );
 						if ( $the_tag )
-+                                                       $this->set( 'tag_id', $the_tag->term_id );
+							$this->set( 'tag_id', $the_tag->term_id );
 						unset( $the_tag );
 					}
 				}
@@ -2293,8 +2295,7 @@ class WP_Query {
 		}
 
 		if ( !empty( $this->tax_query->queries ) || !empty( $this->meta_query->queries ) ) {
-			//$groupby = "{$wpdb->posts}.ID";
-			$distinct = "DISTINCT";
+			$groupby = "{$wpdb->posts}.ID";
 		}
 
 		// Author/user stuff
@@ -2499,7 +2500,6 @@ class WP_Query {
 			}
 			foreach ( $statuswheres as $statuswhere )
 				$where .= " AND $statuswhere";
-
 		} elseif ( !$this->is_singular ) {
 			$where .= " AND ($wpdb->posts.post_status = 'publish'";
 
@@ -2548,12 +2548,12 @@ class WP_Query {
 				$page = 1;
 
 			if ( empty($q['offset']) ) {
-				$pgstrt = ($page - 1) * $q['posts_per_page'];
+				$pgstrt = ($page - 1) * $q['posts_per_page'] . ', ';
 			} else { // we're ignoring $page and using 'offset'
 				$q['offset'] = absint($q['offset']);
-				$pgstrt = $q['offset'];
+				$pgstrt = $q['offset'] . ', ';
 			}
-			$limits = 'OFFSET  ' . $pgstrt  . ' ROWS FETCH NEXT ' . $q['posts_per_page'] . ' ROWS ONLY';
+			$limits = 'LIMIT ' . $pgstrt . $q['posts_per_page'];
 		}
 
 		// Comments feeds
@@ -2573,7 +2573,7 @@ class WP_Query {
 				$cwhere = apply_filters_ref_array('comment_feed_where', array( $cwhere, &$this ) );
 				$cgroupby = apply_filters_ref_array('comment_feed_groupby', array( $cgroupby, &$this ) );
 				$corderby = apply_filters_ref_array('comment_feed_orderby', array( 'comment_date_gmt DESC', &$this ) );
-				$climits = apply_filters_ref_array('comment_feed_limits', array( 'OFFSET 0 ROWS FETCH NEXT ' . get_option('posts_per_rss') . ' ROWS ONLY', &$this ) );
+				$climits = apply_filters_ref_array('comment_feed_limits', array( 'LIMIT ' . get_option('posts_per_rss'), &$this ) );
 			}
 			$cgroupby = ( ! empty( $cgroupby ) ) ? 'GROUP BY ' . $cgroupby : '';
 			$corderby = ( ! empty( $corderby ) ) ? 'ORDER BY ' . $corderby : '';
@@ -2593,7 +2593,7 @@ class WP_Query {
 			else
 				$where = "AND 0";
 		}
-		
+
 		$pieces = array( 'where', 'groupby', 'join', 'orderby', 'distinct', 'fields', 'limits' );
 
 		// Apply post-paging filters on where and join. Only plugins that
@@ -2638,16 +2638,11 @@ class WP_Query {
 			$orderby = 'ORDER BY ' . $orderby;
 
 		$found_rows = '';
-		if ( !$q['no_found_rows'] && !empty($limits) ) {
-			$found_rows = ', COUNT(*) over() as [found_rows]';
-			//echo "<span style='color: green;'>found_rows = $found_rows</span>";
-		}
-	
-		if( ! empty( $found_rows ) )
-			$wpdb->query( "SELECT COUNT( $distinct ID ) as [found_rows] FROM $wpdb->posts $join WHERE 1=1 $where $groupby" );
+		if ( !$q['no_found_rows'] && !empty($limits) )
+			$found_rows = 'SQL_CALC_FOUND_ROWS';
 
-		$this->request = $old_request = "SELECT $distinct $fields FROM $wpdb->posts $join WHERE 1=1 $where $groupby $orderby $limits";
-	
+		$this->request = $old_request = "SELECT $found_rows $distinct $fields FROM $wpdb->posts $join WHERE 1=1 $where $groupby $orderby $limits";
+
 		if ( !$q['suppress_filters'] ) {
 			$this->request = apply_filters_ref_array( 'posts_request', array( $this->request, &$this ) );
 		}
@@ -2678,10 +2673,7 @@ class WP_Query {
 		if ( $split_the_query ) {
 			// First get the IDs and then fill in the objects
 
-			if( ! empty( $found_rows ) )
-				$wpdb->query( "SELECT COUNT( $distinct ID ) as [found_rows] FROM $wpdb->posts $join WHERE 1=1 $where $groupby" );
-
-			$this->request = "SELECT $distinct $wpdb->posts.* FROM $wpdb->posts $join WHERE 1=1 $where $groupby $orderby $limits";
+			$this->request = "SELECT $found_rows $distinct $wpdb->posts.ID FROM $wpdb->posts $join WHERE 1=1 $where $groupby $orderby $limits";
 
 			$this->request = apply_filters( 'posts_request_ids', $this->request, $this );
 
@@ -2714,8 +2706,8 @@ class WP_Query {
 			$cgroupby = ( ! empty( $cgroupby ) ) ? 'GROUP BY ' . $cgroupby : '';
 			$corderby = apply_filters_ref_array('comment_feed_orderby', array( 'comment_date_gmt DESC', &$this ) );
 			$corderby = ( ! empty( $corderby ) ) ? 'ORDER BY ' . $corderby : '';
-			$climits = apply_filters_ref_array('comment_feed_limits', array( 'TOP ' . get_option('posts_per_rss'), &$this ) );
-			$comments_request = "SELECT $climits $wpdb->comments.* FROM $wpdb->comments $cjoin $cwhere $cgroupby $corderby";
+			$climits = apply_filters_ref_array('comment_feed_limits', array( 'LIMIT ' . get_option('posts_per_rss'), &$this ) );
+			$comments_request = "SELECT $wpdb->comments.* FROM $wpdb->comments $cjoin $cwhere $cgroupby $corderby $climits";
 			$this->comments = $wpdb->get_results($comments_request);
 			$this->comment_count = count($this->comments);
 		}
@@ -2830,13 +2822,10 @@ class WP_Query {
 		if ( $q['no_found_rows'] || ( is_array( $this->posts ) && ! $this->posts ) )
 			return;
 
-		if( ! empty( $limits ) ) {
-			if( isset( $wpdb->last_query_total_rows ) )
-				$this->found_posts = (int) $wpdb->last_query_total_rows;
-		}
-		else {
+		if ( ! empty( $limits ) )
+			$this->found_posts = $wpdb->get_var( apply_filters_ref_array( 'found_posts_query', array( 'SELECT FOUND_ROWS()', &$this ) ) );
+		else
 			$this->found_posts = count( $this->posts );
-		}
 
 		$this->found_posts = apply_filters_ref_array( 'found_posts', array( $this->found_posts, &$this ) );
 
@@ -3624,7 +3613,7 @@ function wp_old_slug_redirect() {
 		if ( '' != $wp_query->query_vars['monthnum'] )
 			$query .= $wpdb->prepare(" AND MONTH(post_date) = %d", $wp_query->query_vars['monthnum']);
 		if ( '' != $wp_query->query_vars['day'] )
-			$query .= $wpdb->prepare(" AND DAY(post_date) = %d", $wp_query->query_vars['day']);
+			$query .= $wpdb->prepare(" AND DAYOFMONTH(post_date) = %d", $wp_query->query_vars['day']);
 
 		$id = (int) $wpdb->get_var($query);
 
@@ -3666,7 +3655,6 @@ function setup_postdata( $post ) {
 		$page = 1;
 	if ( is_single() || is_page() || is_feed() )
 		$more = 1;
-
 	$content = $post->post_content;
 	if ( false !== strpos( $content, '<!--nextpage-->' ) ) {
 		if ( $page > 1 )

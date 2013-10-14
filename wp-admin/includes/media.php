@@ -1997,7 +1997,7 @@ function media_upload_library_form($errors) {
 	$start = ( $_GET['paged'] - 1 ) * 10;
 	if ( $start < 1 )
 		$start = 0;
-	add_filter( 'post_limits', create_function( '$a', "return 'OFFSET $start ROWS FETCH NEXT 10 ROWS ONLY'" ) );
+	add_filter( 'post_limits', create_function( '$a', "return 'LIMIT $start, 10';" ) );
 
 	list($post_mime_types, $avail_post_mime_types) = wp_edit_attachments_query();
 
@@ -2072,7 +2072,7 @@ if ( $page_links )
 <div class="alignleft actions">
 <?php
 
-$arc_query = "SELECT DISTINCT YEAR(post_date) AS yyear, MONTH(post_date) AS mmonth FROM $wpdb->posts WHERE post_type = 'attachment' ORDER BY YEAR(post_date) DESC, MONTH(post_date) DESC";
+$arc_query = "SELECT DISTINCT YEAR(post_date) AS yyear, MONTH(post_date) AS mmonth FROM $wpdb->posts WHERE post_type = 'attachment' ORDER BY post_date DESC";
 
 $arc_result = $wpdb->get_results( $arc_query );
 
@@ -2579,7 +2579,6 @@ function wp_read_video_metadata( $file ) {
 
 	if ( ! class_exists( 'getID3' ) )
 		require( ABSPATH . WPINC . '/ID3/getid3.php' );
-
 	$id3 = new getID3();
 	$data = $id3->analyze( $file );
 
@@ -2635,7 +2634,6 @@ function wp_read_audio_metadata( $file ) {
 
 	if ( ! class_exists( 'getID3' ) )
 		require( ABSPATH . WPINC . '/ID3/getid3.php' );
-
 	$id3 = new getID3();
 	$data = $id3->analyze( $file );
 

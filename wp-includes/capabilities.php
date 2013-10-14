@@ -124,7 +124,6 @@ class WP_Roles {
 	 * @access public
 	 */
 	function reinit() {
-		return;
 		// There is no need to reinit if using the wp_user_roles global.
 		if ( ! $this->use_db )
 			return;
@@ -472,7 +471,6 @@ class WP_User {
 	 * @return WP_User
 	 */
 	function __construct( $id = 0, $name = '', $blog_id = '' ) {
-		//die( "$id" );
 		if ( ! isset( self::$back_compat_keys ) ) {
 			$prefix = $GLOBALS['wpdb']->prefix;
 			self::$back_compat_keys = array(
@@ -714,8 +712,6 @@ class WP_User {
 			$this->cap_key = $wpdb->prefix . 'capabilities';
 		else
 			$this->cap_key = $cap_key;
-			 
-		
 
 		$this->caps = get_user_meta( $this->ID, $this->cap_key, true );
 

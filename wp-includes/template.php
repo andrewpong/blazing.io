@@ -345,6 +345,10 @@ function get_attachment_template() {
 function get_comments_popup_template() {
 	$template = get_query_template( 'comments_popup', array( 'comments-popup.php' ) );
 
+	// Backward compat code will be removed in a future release
+	if ('' == $template)
+		$template = ABSPATH . WPINC . '/theme-compat/comments-popup.php';
+
 	return $template;
 }
 

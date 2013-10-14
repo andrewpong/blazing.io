@@ -83,7 +83,7 @@ function find_core_update( $version, $locale ) {
 
 function core_update_footer( $msg = '' ) {
 	if ( !current_user_can('update_core') )
-		return sprintf( __( 'Version %s' ), get_projectnami_version() );
+		return sprintf( __( 'Version %s' ), get_bloginfo( 'version', 'display' ) );
 
 	$cur = get_preferred_from_update_core();
 	if ( ! is_object( $cur ) )
@@ -100,7 +100,7 @@ function core_update_footer( $msg = '' ) {
 
 	switch ( $cur->response ) {
 	case 'development' :
-		return sprintf( __( 'You are using a development version ( %1$s ) of Project Nami compatible with WordPress version ( %2$s ). Cool!' ), get_projectnami_version(), get_bloginfo( 'version', 'display' ) );
+		return sprintf( __( 'You are using a development version (%1$s). Cool! Please <a href="%2$s">stay updated</a>.' ), get_bloginfo( 'version', 'display' ), network_admin_url( 'update-core.php' ) );
 	break;
 
 	case 'upgrade' :
@@ -141,7 +141,7 @@ add_action( 'network_admin_notices', 'update_nag', 3 );
 
 // Called directly from dashboard
 function update_right_now_message() {
-	$msg = sprintf( __( 'You are using <span class="b">Project Nami %s</span> compatible with WordPress %s.' ), get_projectnami_version(), get_bloginfo( 'version', 'display' ) );
+	$msg = sprintf( __( 'You are using <span class="b">WordPress %s</span>.' ), get_bloginfo( 'version', 'display' ) );
 
 	if ( current_user_can('update_core') ) {
 		$cur = get_preferred_from_update_core();

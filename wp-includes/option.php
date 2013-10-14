@@ -29,7 +29,6 @@
  * @param mixed $default Optional. Default value to return if the option does not exist.
  * @return mixed Value set for the option.
  */
-
 function get_option( $option, $default = false ) {
 	global $wpdb;
 
@@ -46,23 +45,21 @@ function get_option( $option, $default = false ) {
 		return false;
 
 	if ( ! defined( 'WP_INSTALLING' ) ) {
-		
 		// prevent non-existent options from triggering multiple queries
 		$notoptions = wp_cache_get( 'notoptions', 'options' );
 		if ( isset( $notoptions[$option] ) )
 			return apply_filters( 'default_option_' . $option, $default );
 
 		$alloptions = wp_load_alloptions();
-		
+
 		if ( isset( $alloptions[$option] ) ) {
 			$value = $alloptions[$option];
 		} else {
 			$value = wp_cache_get( $option, 'options' );
 
 			if ( false === $value ) {
+				$row = $wpdb->get_row( $wpdb->prepare( "SELECT option_value FROM $wpdb->options WHERE option_name = %s LIMIT 1", $option ) );
 
-				$row = $wpdb->get_row( $wpdb->prepare( "SELECT TOP 1 option_value FROM $wpdb->options WHERE option_name = %s", $option ) );
-				
 				// Has to be get_row instead of get_var because of funkiness with 0, false, null values
 				if ( is_object( $row ) ) {
 					$value = $row->option_value;
@@ -76,7 +73,7 @@ function get_option( $option, $default = false ) {
 		}
 	} else {
 		$suppress = $wpdb->suppress_errors();
-		$row = $wpdb->get_row( $wpdb->prepare( "SELECT TOP 1 option_value FROM $wpdb->options WHERE option_name = %s", $option ) );
+		$row = $wpdb->get_row( $wpdb->prepare( "SELECT option_value FROM $wpdb->options WHERE option_name = %s LIMIT 1", $option ) );
 		$wpdb->suppress_errors( $suppress );
 		if ( is_object( $row ) )
 			$value = $row->option_value;
@@ -245,7 +242,7 @@ function update_option( $option, $newvalue ) {
 
 	$_newvalue = $newvalue;
 	$newvalue = maybe_serialize( $newvalue );
-	
+
 	do_action( 'update_option', $option, $oldvalue, $_newvalue );
 	if ( ! defined( 'WP_INSTALLING' ) ) {
 		$alloptions = wp_load_alloptions();
@@ -258,7 +255,7 @@ function update_option( $option, $newvalue ) {
 	}
 
 	$result = $wpdb->update( $wpdb->options, array( 'option_value' => $newvalue ), array( 'option_name' => $option ) );
-	
+
 	if ( $result ) {
 		do_action( "update_option_{$option}", $oldvalue, $_newvalue );
 		do_action( 'updated_option', $option, $oldvalue, $_newvalue );
@@ -301,14 +298,14 @@ function add_option( $option, $value = '', $deprecated = '', $autoload = 'yes' )
 	$option = trim($option);
 	if ( empty($option) )
 		return false;
-	
+
 	wp_protect_special_option( $option );
 
 	if ( is_object($value) )
 		$value = clone $value;
 
 	$value = sanitize_option( $option, $value );
-	
+
 	// Make sure the option doesn't already exist. We can check the 'notoptions' cache before we ask for a db query
 	$notoptions = wp_cache_get( 'notoptions', 'options' );
 	if ( !is_array( $notoptions ) || !isset( $notoptions[$option] ) )
@@ -336,14 +333,13 @@ function add_option( $option, $value = '', $deprecated = '', $autoload = 'yes' )
 		wp_cache_set( 'notoptions', $notoptions, 'options' );
 	}
 
-	$result = $wpdb->query( $wpdb->prepare( "IF NOT EXISTS (SELECT * FROM [$wpdb->options] WHERE [option_name] = '%s') INSERT INTO [$wpdb->options] ([option_name], [option_value], [autoload]) VALUES ('%s', '%s', '%s') else UPDATE [$wpdb->options] set [option_value] = '%s', [autoload] = '%s' where [option_name] = '%s'", array( $option, $option, $value, $autoload, $value, $autoload, $option ) ) );
+	$result = $wpdb->query( $wpdb->prepare( "INSERT INTO `$wpdb->options` (`option_name`, `option_value`, `autoload`) VALUES (%s, %s, %s) ON DUPLICATE KEY UPDATE `option_name` = VALUES(`option_name`), `option_value` = VALUES(`option_value`), `autoload` = VALUES(`autoload`)", $option, $value, $autoload ) );
 
 	if ( $result ) {
 		do_action( "add_option_{$option}", $option, $_value );
 		do_action( 'added_option', $option, $_value );
 		return true;
 	}
-
 	return false;
 }
 

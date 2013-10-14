@@ -5,10 +5,6 @@
  * @package WordPress
  */
 
-function mssql_escape( $string ) {
-	return str_replace( "'", "''", $string );
-}
-
 require( ABSPATH . WPINC . '/option.php' );
 
 /**
@@ -30,10 +26,6 @@ require( ABSPATH . WPINC . '/option.php' );
 function mysql2date( $format, $date, $translate = true ) {
 	if ( empty( $date ) )
 		return false;
-
-	if( is_object( $date ) && get_class( $date ) == 'DateTime' )
-		$date = $date->gettimestamp();
-		//$date = $date->date;
 
 	if ( 'G' == $format )
 		return strtotime( $date . ' +0000' );
@@ -236,10 +228,8 @@ function get_weekstartend( $mysqlstring, $start_of_week = '' ) {
  * @return mixed Unserialized data can be any type.
  */
 function maybe_unserialize( $original ) {
-	if ( is_serialized( $original ) ) { // don't attempt to unserialize data that wasn't serialized going in
-		return unserialize($original);
-	}
-	
+	if ( is_serialized( $original ) ) // don't attempt to unserialize data that wasn't serialized going in
+		return @unserialize( $original );
 	return $original;
 }
 
@@ -290,7 +280,7 @@ function is_serialized( $data, $strict = true ) {
 				if ( '"' !== $data[ $length - 2 ] )
 					return false;
 			} elseif ( false === strpos( $data, '"' ) ) {
- 				return false;
+				return false;
 			}
 		case 'a' :
 		case 'O' :
@@ -518,9 +508,6 @@ function do_enclose( $content, $post_ID ) {
  * @return bool|string False on failure and string of headers if HEAD request.
  */
 function wp_get_http( $url, $file_path = false, $red = 1 ) {
-
-	// Added in WP-MSSQL Beta for the purpose of faciliating completion of the import process.
-	// Note: With several hundred comments on a post, this function can fail.
 	@set_time_limit( 60 );
 
 	if ( $red > 5 )
@@ -1146,10 +1133,9 @@ function is_blog_installed() {
 	}
 	// If siteurl is not set to autoload, check it specifically
 	if ( !isset( $alloptions['siteurl'] ) )
-		$installed = $wpdb->get_var( "SELECT option_value FROM [$wpdb->options] WHERE option_name = 'siteurl'" );
+		$installed = $wpdb->get_var( "SELECT option_value FROM $wpdb->options WHERE option_name = 'siteurl'" );
 	else
 		$installed = $alloptions['siteurl'];
-
 	$wpdb->suppress_errors( $suppress );
 
 	$installed = !empty( $installed );
@@ -1168,7 +1154,6 @@ function is_blog_installed() {
 	// If one or more exist, suggest table repair since we got here because the options
 	// table could not be accessed.
 	$wp_tables = $wpdb->tables();
-
 	foreach ( $wp_tables as $table ) {
 		// The existence of custom user tables shouldn't suggest an insane state or prevent a clean install.
 		if ( defined( 'CUSTOM_USER_TABLE' ) && CUSTOM_USER_TABLE == $table )
@@ -1176,9 +1161,9 @@ function is_blog_installed() {
 		if ( defined( 'CUSTOM_USER_META_TABLE' ) && CUSTOM_USER_META_TABLE == $table )
 			continue;
 
-		if ( ! $wpdb->get_results( "exec sp_columns '$table'" ) )
+		if ( ! $wpdb->get_results( "DESCRIBE $table;" ) )
 			continue;
-		
+
 		// One or more tables exist. We are insane.
 
 		wp_load_translations_early();
@@ -3733,21 +3718,18 @@ function send_nosniff_header() {
  * @return string
  */
 function _wp_mysql_week( $column ) {
-	global $wpdb;
-
 	switch ( $start_of_week = (int) get_option( 'start_of_week' ) ) {
 	default :
 	case 0 :
-		sqlsrv_query( $wpdb->dbh, "SET DATEFIRST 7" );
-		return "DATEPART( wk, $column )";
+		return "WEEK( $column, 0 )";
 	case 1 :
+		return "WEEK( $column, 1 )";
 	case 2 :
 	case 3 :
 	case 4 :
 	case 5 :
 	case 6 :
-		sqlsrv_query( $wpdb->dbh, "SET DATEFIRST $start_of_week" );
-		return "DATEPART( wk, $column )";
+		return "WEEK( DATE_SUB( $column, INTERVAL $start_of_week DAY ), 0 )";
 	}
 }
 

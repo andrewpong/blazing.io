@@ -23,7 +23,7 @@
  */
 function get_header( $name = null ) {
 	do_action( 'get_header', $name );
-	
+
 	$templates = array();
 	$name = (string) $name;
 	if ( '' !== $name )
@@ -31,7 +31,9 @@ function get_header( $name = null ) {
 
 	$templates[] = 'header.php';
 
-	locate_template( $templates, true );
+	// Backward compat code will be removed in a future release
+	if ('' == locate_template($templates, true))
+		load_template( ABSPATH . WPINC . '/theme-compat/header.php');
 }
 
 /**
@@ -59,7 +61,9 @@ function get_footer( $name = null ) {
 
 	$templates[] = 'footer.php';
 
-	locate_template( $templates, true );
+	// Backward compat code will be removed in a future release
+	if ('' == locate_template($templates, true))
+		load_template( ABSPATH . WPINC . '/theme-compat/footer.php');
 }
 
 /**
@@ -87,7 +91,9 @@ function get_sidebar( $name = null ) {
 
 	$templates[] = 'sidebar.php';
 
-	locate_template( $templates, true );
+	// Backward compat code will be removed in a future release
+	if ('' == locate_template($templates, true))
+		load_template( ABSPATH . WPINC . '/theme-compat/sidebar.php');
 }
 
 /**
@@ -163,11 +169,12 @@ function get_search_form( $echo = true ) {
 		$form = ob_get_clean();
 	} else {
 		if ( 'html5' == $format ) {
-			$form = '<form role="search" method="get" class="searchform" action="' . esc_url( home_url( '/' ) ) . '">
-				<label><span class="screen-reader-text">' . _x( 'Search for:', 'label' ) . '</span>
-					<input type="search" placeholder="' . esc_attr_x( 'Search &hellip;', 'placeholder' ) . '" value="' . get_search_query() . '" name="s" title="' . _x( 'Search for:', 'label' ) . '" />
+			$form = '<form role="search" method="get" class="search-form" action="' . esc_url( home_url( '/' ) ) . '">
+				<label>
+					<span class="screen-reader-text">' . _x( 'Search for:', 'label' ) . '</span>
+					<input type="search" class="search-field" placeholder="' . esc_attr_x( 'Search &hellip;', 'placeholder' ) . '" value="' . get_search_query() . '" name="s" title="' . _x( 'Search for:', 'label' ) . '" />
 				</label>
-				<input type="submit" class="searchsubmit" value="'. esc_attr_x( 'Search', 'submit button' ) .'" />
+				<input type="submit" class="search-submit" value="'. esc_attr_x( 'Search', 'submit button' ) .'" />
 			</form>';
 		} else {
 			$form = '<form role="search" method="get" id="searchform" class="searchform" action="' . esc_url( home_url( '/' ) ) . '">
@@ -398,12 +405,6 @@ function wp_register( $before = '<li>', $after = '</li>', $echo = true ) {
  */
 function wp_meta() {
 	do_action('wp_meta');
-}
-
-function get_projectnami_version() {
-	include ABSPATH . WPINC . '/pn-version.php';
-
-	return $pn_version;
 }
 
 /**
@@ -927,7 +928,7 @@ function wp_get_archives($args = '') {
 
 	if ( '' != $limit ) {
 		$limit = absint($limit);
-		$limit = ' OFFSET 0 ROWS FETCH NEXT '.$limit . ' ROWS ONLY';
+		$limit = ' LIMIT '.$limit;
 	}
 
 	$order = strtoupper( $order );
@@ -965,7 +966,7 @@ function wp_get_archives($args = '') {
 	}
 
 	if ( 'monthly' == $type ) {
-		$query = "SELECT YEAR(post_date) AS [year], MONTH(post_date) AS [month], count(ID) as posts FROM $wpdb->posts $join $where GROUP BY YEAR(post_date), MONTH(post_date) ORDER BY [year], [month] $order $limit";
+		$query = "SELECT YEAR(post_date) AS `year`, MONTH(post_date) AS `month`, count(ID) as posts FROM $wpdb->posts $join $where GROUP BY YEAR(post_date), MONTH(post_date) ORDER BY post_date $order $limit";
 		$key = md5( $query );
 		$key = "wp_get_archives:$key:$last_changed";
 		if ( ! $results = wp_cache_get( $key, 'posts' ) ) {
@@ -984,7 +985,7 @@ function wp_get_archives($args = '') {
 			}
 		}
 	} elseif ('yearly' == $type) {
-		$query = "SELECT YEAR(post_date) AS [year], count(ID) as posts FROM $wpdb->posts $join $where GROUP BY YEAR(post_date) ORDER BY YEAR(post_date) $order $limit";
+		$query = "SELECT YEAR(post_date) AS `year`, count(ID) as posts FROM $wpdb->posts $join $where GROUP BY YEAR(post_date) ORDER BY post_date $order $limit";
 		$key = md5( $query );
 		$key = "wp_get_archives:$key:$last_changed";
 		if ( ! $results = wp_cache_get( $key, 'posts' ) ) {
@@ -1002,7 +1003,7 @@ function wp_get_archives($args = '') {
 			}
 		}
 	} elseif ( 'daily' == $type ) {
-		$query = "SELECT YEAR(post_date) AS [year], MONTH(post_date) AS [month], DAY(post_date) AS [dayofmonth], count(ID) as posts FROM $wpdb->posts $join $where GROUP BY YEAR(post_date), MONTH(post_date), DAY(post_date) ORDER BY YEAR(post_date) $order, MONTH(post_date) $order, DAY(post_date) $order $limit";
+		$query = "SELECT YEAR(post_date) AS `year`, MONTH(post_date) AS `month`, DAYOFMONTH(post_date) AS `dayofmonth`, count(ID) as posts FROM $wpdb->posts $join $where GROUP BY YEAR(post_date), MONTH(post_date), DAYOFMONTH(post_date) ORDER BY post_date $order $limit";
 		$key = md5( $query );
 		$key = "wp_get_archives:$key:$last_changed";
 		if ( ! $results = wp_cache_get( $key, 'posts' ) ) {
@@ -1022,8 +1023,8 @@ function wp_get_archives($args = '') {
 			}
 		}
 	} elseif ( 'weekly' == $type ) {
-		$week = _wp_mysql_week( '[post_date]' );
-		$query = "SELECT DISTINCT $week AS [week], YEAR( [post_date] ) AS [yr], DATE_FORMAT( [post_date], '%Y-%m-%d' ) AS [yyyymmdd], count( [ID] ) AS [posts] FROM [$wpdb->posts] $join $where GROUP BY $week, YEAR( [post_date] ) ORDER BY [post_date] $order $limit";
+		$week = _wp_mysql_week( '`post_date`' );
+		$query = "SELECT DISTINCT $week AS `week`, YEAR( `post_date` ) AS `yr`, DATE_FORMAT( `post_date`, '%Y-%m-%d' ) AS `yyyymmdd`, count( `ID` ) AS `posts` FROM `$wpdb->posts` $join $where GROUP BY $week, YEAR( `post_date` ) ORDER BY `post_date` $order $limit";
 		$key = md5( $query );
 		$key = "wp_get_archives:$key:$last_changed";
 		if ( ! $results = wp_cache_get( $key, 'posts' ) ) {
@@ -1059,7 +1060,7 @@ function wp_get_archives($args = '') {
 		}
 		if ( $results ) {
 			foreach ( (array) $results as $result ) {
-				if ( $result->post_date != '0001-01-01 00:00:00' ) {
+				if ( $result->post_date != '0000-00-00 00:00:00' ) {
 					$url  = get_permalink( $result );
 					if ( $result->post_title )
 						$text = strip_tags( apply_filters( 'the_title', $result->post_title, $result->ID ) );
@@ -1123,7 +1124,7 @@ function get_calendar($initial = true, $echo = true) {
 
 	// Quick check. If we have no posts at all, abort!
 	if ( !$posts ) {
-		$gotsome = $wpdb->get_var("SELECT TOP 1 1 as test FROM $wpdb->posts WHERE post_type = 'post' AND post_status = 'publish'");
+		$gotsome = $wpdb->get_var("SELECT 1 as test FROM $wpdb->posts WHERE post_type = 'post' AND post_status = 'publish' LIMIT 1");
 		if ( !$gotsome ) {
 			$cache[ $key ] = '';
 			wp_cache_set( 'get_calendar', $cache, 'calendar' );
@@ -1145,7 +1146,7 @@ function get_calendar($initial = true, $echo = true) {
 		// We need to get the month from MySQL
 		$thisyear = ''.intval(substr($m, 0, 4));
 		$d = (($w - 1) * 7) + 6; //it seems MySQL's weeks disagree with PHP's
-		$thismonth = $wpdb->get_var("SELECT DATE_FORMAT((DATEADD(DAY, $d, '{$thisyear}0101')), '%m')");
+		$thismonth = $wpdb->get_var("SELECT DATE_FORMAT((DATE_ADD('{$thisyear}0101', INTERVAL $d DAY) ), '%m')");
 	} elseif ( !empty($m) ) {
 		$thisyear = ''.intval(substr($m, 0, 4));
 		if ( strlen($m) < 6 )
@@ -1161,16 +1162,18 @@ function get_calendar($initial = true, $echo = true) {
 	$last_day = date('t', $unixmonth);
 
 	// Get the next and previous month and year with at least one post
-	$previous = $wpdb->get_row("SELECT TOP 1 MONTH(post_date) AS month, YEAR(post_date) AS year
+	$previous = $wpdb->get_row("SELECT MONTH(post_date) AS month, YEAR(post_date) AS year
 		FROM $wpdb->posts
 		WHERE post_date < '$thisyear-$thismonth-01'
 		AND post_type = 'post' AND post_status = 'publish'
-			ORDER BY YEAR(post_date) DESC, MONTH(post_date) DESC");
-	$next = $wpdb->get_row("SELECT TOP 1 MONTH(post_date) AS month, YEAR(post_date) AS year
+			ORDER BY post_date DESC
+			LIMIT 1");
+	$next = $wpdb->get_row("SELECT MONTH(post_date) AS month, YEAR(post_date) AS year
 		FROM $wpdb->posts
 		WHERE post_date > '$thisyear-$thismonth-{$last_day} 23:59:59'
 		AND post_type = 'post' AND post_status = 'publish'
-			ORDER BY YEAR(post_date) ASC, MONTH(post_date) ASC");
+			ORDER BY post_date ASC
+			LIMIT 1");
 
 	/* translators: Calendar caption: 1: month name, 2: 4-digit year */
 	$calendar_caption = _x('%1$s %2$s', 'calendar caption');
@@ -1220,7 +1223,7 @@ function get_calendar($initial = true, $echo = true) {
 	<tr>';
 
 	// Get days with posts
-	$dayswithposts = $wpdb->get_results("SELECT DISTINCT DAY(post_date)
+	$dayswithposts = $wpdb->get_results("SELECT DISTINCT DAYOFMONTH(post_date)
 		FROM $wpdb->posts WHERE post_date >= '{$thisyear}-{$thismonth}-01 00:00:00'
 		AND post_type = 'post' AND post_status = 'publish'
 		AND post_date <= '{$thisyear}-{$thismonth}-{$last_day} 23:59:59'", ARRAY_N);
@@ -1238,7 +1241,7 @@ function get_calendar($initial = true, $echo = true) {
 		$ak_title_separator = ', ';
 
 	$ak_titles_for_day = array();
-	$ak_post_titles = $wpdb->get_results("SELECT ID, post_title, DAY(post_date) as dom "
+	$ak_post_titles = $wpdb->get_results("SELECT ID, post_title, DAYOFMONTH(post_date) as dom "
 		."FROM $wpdb->posts "
 		."WHERE post_date >= '{$thisyear}-{$thismonth}-01 00:00:00' "
 		."AND post_date <= '{$thisyear}-{$thismonth}-{$last_day} 23:59:59' "

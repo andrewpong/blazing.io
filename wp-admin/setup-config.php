@@ -138,12 +138,12 @@ switch($step) {
 		<tr>
 			<th scope="row"><label for="uname"><?php _e( 'User Name' ); ?></label></th>
 			<td><input name="uname" id="uname" type="text" size="25" value="<?php echo htmlspecialchars( _x( 'username', 'example username' ), ENT_QUOTES ); ?>" /></td>
-			<td><?php _e( 'Your MSSQL username. <span style="font-weight: bold; font-size: 12px; display: block;">Note: If using SQL Azure, username is of the form username@servername.</span>' ); ?></td>
+			<td><?php _e( 'Your MySQL username' ); ?></td>
 		</tr>
 		<tr>
 			<th scope="row"><label for="pwd"><?php _e( 'Password' ); ?></label></th>
 			<td><input name="pwd" id="pwd" type="text" size="25" value="<?php echo htmlspecialchars( _x( 'password', 'example password' ), ENT_QUOTES ); ?>" /></td>
-			<td><?php _e( '&hellip;and your MSSQL password.' ); ?></td>
+			<td><?php _e( '&hellip;and your MySQL password.' ); ?></td>
 		</tr>
 		<tr>
 			<th scope="row"><label for="dbhost"><?php _e( 'Database Host' ); ?></label></th>

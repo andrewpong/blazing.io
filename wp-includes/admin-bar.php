@@ -77,36 +77,44 @@ function wp_admin_bar_wp_menu( $wp_admin_bar ) {
 	$wp_admin_bar->add_menu( array(
 		'id'    => 'wp-logo',
 		'title' => '<span class="ab-icon"></span>',
-		'href'  => __('http://projectnami.org/about'),
+		'href'  => self_admin_url( 'about.php' ),
 		'meta'  => array(
-			'title' => __('About Project Nami'),
+			'title' => __('About WordPress'),
 		),
 	) );
 
 	if ( is_user_logged_in() ) {
-		// Add "About Project Nami" link
+		// Add "About WordPress" link
 		$wp_admin_bar->add_menu( array(
 			'parent' => 'wp-logo',
 			'id'     => 'about',
-			'title'  => __('About Project Nami'),
-			'href'  => __('http://projectnami.org/about'),
+			'title'  => __('About WordPress'),
+			'href'  => self_admin_url( 'about.php' ),
 		) );
 	}
 
-	// Add ProjectNami.org link
+	// Add WordPress.org link
 	$wp_admin_bar->add_menu( array(
 		'parent'    => 'wp-logo-external',
 		'id'        => 'wporg',
-		'title'     => __('ProjectNami.org'),
-		'href'      => __('http://projectnami.org/'),
+		'title'     => __('WordPress.org'),
+		'href'      => __('http://wordpress.org/'),
+	) );
+
+	// Add codex link
+	$wp_admin_bar->add_menu( array(
+		'parent'    => 'wp-logo-external',
+		'id'        => 'documentation',
+		'title'     => __('Documentation'),
+		'href'      => __('http://codex.wordpress.org/'),
 	) );
 
 	// Add forums link
 	$wp_admin_bar->add_menu( array(
 		'parent'    => 'wp-logo-external',
 		'id'        => 'support-forums',
-		'title'     => __('Support Forum'),
-		'href'      => __('http://support.projectnami.org'),
+		'title'     => __('Support Forums'),
+		'href'      => __('http://wordpress.org/support/'),
 	) );
 
 	// Add feedback link
@@ -114,15 +122,7 @@ function wp_admin_bar_wp_menu( $wp_admin_bar ) {
 		'parent'    => 'wp-logo-external',
 		'id'        => 'feedback',
 		'title'     => __('Feedback'),
-		'href'      => __('http://support.projectnami.org/viewforum.php?f=5'),
-	) );
-
-	// Add codex link
-	$wp_admin_bar->add_menu( array(
-		'parent'    => 'wp-logo-external',
-		'id'        => 'documentation',
-		'title'     => __('WordPress Docs'),
-		'href'      => __('http://codex.wordpress.org/'),
+		'href'      => __('http://wordpress.org/support/forum/requests-and-feedback'),
 	) );
 }
 

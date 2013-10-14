@@ -39,8 +39,8 @@ foreach ( $wpdb->tables( 'ms_global' ) as $table => $prefixed_table )
  */
 function network_domain_check() {
 	global $wpdb;
-	if ( $wpdb->get_var( "SELECT name FROM sysobjects WHERE type='u' AND name = '$wpdb->site'" ) )
-		return $wpdb->get_var( "SELECT TOP 1 domain FROM $wpdb->site ORDER BY id ASC" );
+	if ( $wpdb->get_var( "SHOW TABLES LIKE '$wpdb->site'" ) )
+		return $wpdb->get_var( "SELECT domain FROM $wpdb->site ORDER BY id ASC LIMIT 1" );
 	return false;
 }
 
@@ -71,8 +71,7 @@ function allow_subdirectory_install() {
 	if ( defined( 'ALLOW_SUBDIRECTORY_INSTALL' ) && ALLOW_SUBDIRECTORY_INSTALL )
 		return true;
 
-	//$post = $wpdb->get_row( "SELECT ID FROM $wpdb->posts WHERE post_date < DATE_SUB(NOW(), INTERVAL 1 MONTH) AND post_status = 'publish'" );
-	$post = $wpdb->get_row( "SELECT ID FROM $wpdb->posts WHERE post_date < DATEADD(MONTH, -1, GETDATE()) AND post_status = 'publish'" );
+	$post = $wpdb->get_row( "SELECT ID FROM $wpdb->posts WHERE post_date < DATE_SUB(NOW(), INTERVAL 1 MONTH) AND post_status = 'publish'" );
 	if ( empty( $post ) )
 		return true;
 

@@ -508,9 +508,6 @@ function wp_specialchars_decode( $string, $quote_style = ENT_NOQUOTES ) {
  * @return string The checked text.
  */
 function wp_check_invalid_utf8( $string, $strip = false ) {
-	if( is_object( $string ) && get_class( $string ) == 'DateTime' )
-		 $string = $string->gettimestamp();
-
 	$string = (string) $string;
 
 	if ( 0 === strlen( $string ) ) {
@@ -2777,7 +2774,7 @@ function tag_escape($tag_name) {
  * @return string text, safe for inclusion in LIKE query.
  */
 function like_escape($text) {
-	return str_replace(array("%", "_"), array("[%]", "[_]"), $text);
+	return str_replace(array("%", "_"), array("\\%", "\\_"), $text);
 }
 
 /**
@@ -3415,6 +3412,7 @@ function wp_slash( $value ) {
 function wp_unslash( $value ) {
 	return stripslashes_deep( $value );
 }
+
 /**
  * Extract and return the first URL from passed content.
  *

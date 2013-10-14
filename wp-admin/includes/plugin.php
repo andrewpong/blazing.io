@@ -1563,7 +1563,6 @@ function user_can_access_admin_page() {
 	}
 
 	if ( empty( $parent) ) {
-
 		if ( isset( $_wp_menu_nopriv[$pagenow] ) )
 			return false;
 		if ( isset( $_wp_submenu_nopriv[$pagenow][$pagenow] ) )

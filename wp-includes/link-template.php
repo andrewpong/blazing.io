@@ -1175,9 +1175,9 @@ function get_adjacent_post( $in_same_cat = false, $excluded_categories = '', $pr
 
 	$join  = apply_filters( "get_{$adjacent}_post_join", $join, $in_same_cat, $excluded_categories );
 	$where = apply_filters( "get_{$adjacent}_post_where", $wpdb->prepare("WHERE p.post_date $op %s AND p.post_type = %s AND p.post_status = 'publish' $posts_in_ex_cats_sql", $current_post_date, $post->post_type), $in_same_cat, $excluded_categories );
-	$sort  = apply_filters( "get_{$adjacent}_post_sort", "ORDER BY p.post_date $order" );
+	$sort  = apply_filters( "get_{$adjacent}_post_sort", "ORDER BY p.post_date $order LIMIT 1" );
 
-	$query = "SELECT TOP 1 p.ID FROM $wpdb->posts AS p $join $where $sort";
+	$query = "SELECT p.ID FROM $wpdb->posts AS p $join $where $sort";
 	$query_key = 'adjacent_post_' . md5($query);
 	$result = wp_cache_get($query_key, 'counts');
 	if ( false !== $result ) {

@@ -439,13 +439,13 @@ final class WP_Post {
 	 *
 	 * @var string
 	 */
-	public $post_date = '0001-01-01 00:00:00';
+	public $post_date = '0000-00-00 00:00:00';
 
 	/**
 	 *
 	 * @var string
 	 */
-	public $post_date_gmt = '0001-01-01 00:00:00';
+	public $post_date_gmt = '0000-00-00 00:00:00';
 
 	/**
 	 *
@@ -511,13 +511,13 @@ final class WP_Post {
 	 *
 	 * @var string
 	 */
-	public $post_modified = '0001-01-01 00:00:00';
+	public $post_modified = '0000-00-00 00:00:00';
 
 	/**
 	 *
 	 * @var string
 	 */
-	public $post_modified_gmt = '0001-01-01 00:00:00';
+	public $post_modified_gmt = '0000-00-00 00:00:00';
 
 	/**
 	 *
@@ -588,7 +588,7 @@ final class WP_Post {
 		$_post = wp_cache_get( $post_id, 'posts' );
 
 		if ( ! $_post ) {
-			$_post = $wpdb->get_row( $wpdb->prepare( "SELECT TOP 1 * FROM $wpdb->posts WHERE ID = %d", $post_id ) );
+			$_post = $wpdb->get_row( $wpdb->prepare( "SELECT * FROM $wpdb->posts WHERE ID = %d LIMIT 1", $post_id ) );
 
 			if ( ! $_post )
 				return false;
@@ -1652,7 +1652,6 @@ function get_posts($args = null) {
 	$r['no_found_rows'] = true;
 
 	$get_posts = new WP_Query;
-	
 	return $get_posts->query($r);
 
 }
@@ -2717,7 +2716,7 @@ function wp_insert_post($postarr, $wp_error = false) {
 	}
 
 	// If the post date is empty (due to having been new or a draft) and status is not 'draft' or 'pending', set date to now
-	if ( empty($post_date) || '0001-01-01 00:00:00' == $post_date )
+	if ( empty($post_date) || '0000-00-00 00:00:00' == $post_date )
 		$post_date = current_time('mysql');
 
 		// validate the date
@@ -2732,14 +2731,14 @@ function wp_insert_post($postarr, $wp_error = false) {
 				return 0;
 		}
 
-	if ( empty($post_date_gmt) || '0001-01-01 00:00:00' == $post_date_gmt ) {
+	if ( empty($post_date_gmt) || '0000-00-00 00:00:00' == $post_date_gmt ) {
 		if ( !in_array( $post_status, array( 'draft', 'pending', 'auto-draft' ) ) )
 			$post_date_gmt = get_gmt_from_date($post_date);
 		else
-			$post_date_gmt = '0001-01-01 00:00:00';
+			$post_date_gmt = '0000-00-00 00:00:00';
 	}
 
-	if ( $update || '0001-01-01 00:00:00' == $post_date ) {
+	if ( $update || '0000-00-00 00:00:00' == $post_date ) {
 		$post_modified     = current_time( 'mysql' );
 		$post_modified_gmt = current_time( 'mysql', 1 );
 	} else {
@@ -2813,21 +2812,14 @@ function wp_insert_post($postarr, $wp_error = false) {
 		if ( !empty($import_id) ) {
 			$import_id = (int) $import_id;
 			if ( ! $wpdb->get_var( $wpdb->prepare("SELECT ID FROM $wpdb->posts WHERE ID = %d", $import_id) ) ) {
-				$enable_identity_insert = "SET IDENTITY_INSERT $wpdb->posts ON";
-				sqlsrv_query( $wpdb->dbh, $enable_identity_insert );
 				$data['ID'] = $import_id;
 			}
 		}
-	
 		if ( false === $wpdb->insert( $wpdb->posts, $data ) ) {
 			if ( $wp_error )
 				return new WP_Error('db_insert_error', __('Could not insert post into the database'), $wpdb->last_error);
 			else
 				return 0;
-		}
-		if( !empty($data[ 'ID' ])) {
-			$enable_identity_insert = "SET IDENTITY_INSERT $wpdb->posts OFF";
-			sqlsrv_query( $wpdb->dbh, $enable_identity_insert );
 		}
 		$post_ID = (int) $wpdb->insert_id;
 
@@ -2933,7 +2925,7 @@ function wp_update_post( $postarr = array(), $wp_error = false ) {
 
 	// Drafts shouldn't be assigned a date unless explicitly done so by the user
 	if ( isset( $post['post_status'] ) && in_array($post['post_status'], array('draft', 'pending', 'auto-draft')) && empty($postarr['edit_date']) &&
-			 ('0001-01-01 00:00:00' == $post['post_date_gmt']) )
+			 ('0000-00-00 00:00:00' == $post['post_date_gmt']) )
 		$clear_date = true;
 	else
 		$clear_date = false;
@@ -3044,7 +3036,7 @@ function wp_unique_post_slug( $slug, $post_ID, $post_status, $post_type, $post_p
 	$hierarchical_post_types = get_post_types( array('hierarchical' => true) );
 	if ( 'attachment' == $post_type ) {
 		// Attachment slugs must be unique across all types.
-		$check_sql = "SELECT TOP 1 post_name FROM $wpdb->posts WHERE post_name = %s AND ID != %d";
+		$check_sql = "SELECT post_name FROM $wpdb->posts WHERE post_name = %s AND ID != %d LIMIT 1";
 		$post_name_check = $wpdb->get_var( $wpdb->prepare( $check_sql, $slug, $post_ID ) );
 
 		if ( $post_name_check || in_array( $slug, $feeds ) || apply_filters( 'wp_unique_post_slug_is_bad_attachment_slug', false, $slug ) ) {
@@ -3061,7 +3053,7 @@ function wp_unique_post_slug( $slug, $post_ID, $post_status, $post_type, $post_p
 			return $slug;
 		// Page slugs must be unique within their own trees. Pages are in a separate
 		// namespace than posts so page slugs are allowed to overlap post slugs.
-		$check_sql = "SELECT TOP 1 post_name FROM $wpdb->posts WHERE post_name = %s AND post_type IN ( '" . implode( "', '", esc_sql( $hierarchical_post_types ) ) . "' ) AND ID != %d AND post_parent = %d";
+		$check_sql = "SELECT post_name FROM $wpdb->posts WHERE post_name = %s AND post_type IN ( '" . implode( "', '", esc_sql( $hierarchical_post_types ) ) . "' ) AND ID != %d AND post_parent = %d LIMIT 1";
 		$post_name_check = $wpdb->get_var( $wpdb->prepare( $check_sql, $slug, $post_ID, $post_parent ) );
 
 		if ( $post_name_check || in_array( $slug, $feeds ) || preg_match( "@^($wp_rewrite->pagination_base)?\d+$@", $slug )  || apply_filters( 'wp_unique_post_slug_is_bad_hierarchical_slug', false, $slug, $post_type, $post_parent ) ) {
@@ -3075,7 +3067,7 @@ function wp_unique_post_slug( $slug, $post_ID, $post_status, $post_type, $post_p
 		}
 	} else {
 		// Post slugs must be unique across all posts.
-		$check_sql = "SELECT TOP 1 post_name FROM $wpdb->posts WHERE post_name = %s AND post_type = %s AND ID != %d";
+		$check_sql = "SELECT post_name FROM $wpdb->posts WHERE post_name = %s AND post_type = %s AND ID != %d LIMIT 1";
 		$post_name_check = $wpdb->get_var( $wpdb->prepare( $check_sql, $slug, $post_type, $post_ID ) );
 
 		if ( $post_name_check || in_array( $slug, $feeds ) || apply_filters( 'wp_unique_post_slug_is_bad_flat_slug', false, $slug, $post_type ) ) {
@@ -3765,7 +3757,7 @@ function get_pages($args = '') {
 	$query .= " ORDER BY " . $sort_column . " " . $sort_order ;
 
 	if ( !empty($number) )
-		$query .= ' OFFSET ' . $offset . ' ROWS FETCH NEXT ' . $number . ' ROWS ONLY';
+		$query .= ' LIMIT ' . $offset . ',' . $number;
 
 	$pages = $wpdb->get_results($query);
 
@@ -3981,22 +3973,14 @@ function wp_insert_attachment($object, $file = false, $parent = 0) {
 		$wpdb->update( $wpdb->posts, $data, array( 'ID' => $post_ID ) );
 	} else {
 		// If there is a suggested ID, use it if not already present
-		if ( !empty($import_id) ) {	
+		if ( !empty($import_id) ) {
 			$import_id = (int) $import_id;
 			if ( ! $wpdb->get_var( $wpdb->prepare("SELECT ID FROM $wpdb->posts WHERE ID = %d", $import_id) ) ) {
-				$enable_identity_insert = "SET IDENTITY_INSERT $wpdb->posts ON";
-				sqlsrv_query( $wpdb->dbh, $enable_identity_insert );
 				$data['ID'] = $import_id;
 			}
 		}
 
 		$wpdb->insert( $wpdb->posts, $data );
-
-		if( ! empty( $data[ 'ID' ] ) ) {
-			$enable_identity_insert = "SET IDENTITY_INSERT $wpdb->posts OFF";
-			sqlsrv_query( $wpdb->dbh, $enable_identity_insert );
-		}
-
 		$post_ID = (int) $wpdb->insert_id;
 	}
 
@@ -4570,13 +4554,13 @@ function _get_last_post_time( $timezone, $field ) {
 
 		switch ( $timezone ) {
 			case 'gmt':
-				$date = $wpdb->get_var("SELECT MAX(post_{$field}_gmt) as [post_{$field}_gmt] FROM $wpdb->posts WHERE post_status = 'publish' AND post_type IN ({$post_types})");
+				$date = $wpdb->get_var("SELECT post_{$field}_gmt FROM $wpdb->posts WHERE post_status = 'publish' AND post_type IN ({$post_types}) ORDER BY post_{$field}_gmt DESC LIMIT 1");
 				break;
 			case 'blog':
-				$date = $wpdb->get_var("SELECT MAX(post_{$field}) as [post_{$field}] FROM $wpdb->posts WHERE post_status = 'publish' AND post_type IN ({$post_types})");
+				$date = $wpdb->get_var("SELECT post_{$field} FROM $wpdb->posts WHERE post_status = 'publish' AND post_type IN ({$post_types}) ORDER BY post_{$field}_gmt DESC LIMIT 1");
 				break;
 			case 'server':
-				$date = $wpdb->get_var("SELECT MAX(DATEADD(SECOND, $add_seconds_server, post_{$field}_gmt)) as [post_{$field}_gmt] FROM $wpdb->posts WHERE post_status = 'publish' AND post_type IN ({$post_types})");
+				$date = $wpdb->get_var("SELECT DATE_ADD(post_{$field}_gmt, INTERVAL '$add_seconds_server' SECOND) FROM $wpdb->posts WHERE post_status = 'publish' AND post_type IN ({$post_types}) ORDER BY post_{$field}_gmt DESC LIMIT 1");
 				break;
 		}
 
@@ -4942,8 +4926,7 @@ function wp_delete_auto_drafts() {
 	global $wpdb;
 
 	// Cleanup old auto-drafts more than 7 days old
-	//$old_posts = $wpdb->get_col( "SELECT ID FROM $wpdb->posts WHERE post_status = 'auto-draft' AND DATE_SUB( NOW(), INTERVAL 7 DAY ) > post_date" );
-	$old_posts = $wpdb->get_col( "SELECT ID FROM $wpdb->posts WHERE post_status = 'auto-draft' AND DATEADD( DAY, -7, GETDATE() ) > post_date" );
+	$old_posts = $wpdb->get_col( "SELECT ID FROM $wpdb->posts WHERE post_status = 'auto-draft' AND DATE_SUB( NOW(), INTERVAL 7 DAY ) > post_date" );
 	foreach ( (array) $old_posts as $delete )
 		wp_delete_post( $delete, true ); // Force delete
 }

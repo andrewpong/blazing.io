@@ -494,10 +494,8 @@ class WP_User_Search {
 		global $wpdb;
 		$this->first_user = ($this->page - 1) * $this->users_per_page;
 
-		$this->query_limit = $wpdb->prepare(" ORDER BY user_login DESC OFFSET %d ROWS FETCH NEXT %d ROWS ONLY", $this->first_user, $this->users_per_page);
-		
-		/* mssql rewrite note: ORDER BY and LIMIT are handled by mssql OFFSET in the above line. */
-		//$this->query_orderby = ' ORDER BY user_login';
+		$this->query_limit = $wpdb->prepare(" LIMIT %d, %d", $this->first_user, $this->users_per_page);
+		$this->query_orderby = ' ORDER BY user_login';
 
 		$search_sql = '';
 		if ( $this->search_term ) {

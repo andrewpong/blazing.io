@@ -24,8 +24,6 @@ if ( false ) {
 <?php
 }
 
-
-
 /**
  * We are installing WordPress.
  *
@@ -42,9 +40,6 @@ require_once( dirname( __FILE__ ) . '/includes/upgrade.php' );
 
 /** Load wpdb */
 require_once(dirname(dirname(__FILE__)) . '/wp-includes/wp-db.php');
-
-if( function_exists( 'wp_create_user' ) )
-	$user_id = wp_create_user( 'spencer', 'spencercameron', 'spencer@personalliberty.com' );
 
 $step = isset( $_GET['step'] ) ? (int) $_GET['step'] : 0;
 
@@ -82,7 +77,7 @@ function display_header() {
  */
 function display_setup_form( $error = null ) {
 	global $wpdb;
-	$user_table = ( $wpdb->get_var("SELECT name FROM sysobjects WHERE type='u' AND name = '$wpdb->users'") != null );
+	$user_table = ( $wpdb->get_var("SHOW TABLES LIKE '$wpdb->users'") != null );
 
 	// Ensure that Blogs appear in search engines by default
 	$blog_public = 1;
