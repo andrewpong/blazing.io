@@ -101,6 +101,7 @@ function wp_fix_server_vars() {
  */
 function wp_check_php_mysql_versions() {
 	global $required_php_version, $wp_version;
+
 	$php_version = phpversion();
 	if ( version_compare( $required_php_version, $php_version, '>' ) ) {
 		wp_load_translations_early();
